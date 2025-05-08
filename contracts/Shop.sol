@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/access/Ownable.sol"; // 商品追加の管理用
 
 contract Shop is Ownable {
@@ -20,11 +20,11 @@ contract Shop is Ownable {
     event ProductAdded(uint256 id, string name, uint256 price);
     event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price);
 
-    constructor(address tokenAddress) {
-        token = IERC20(tokenAddress);
+    constructor(address tokenAddress) Ownable(msg.sender) {
+        token = IERC20Metadata(tokenAddress);
         // 学習用に初期商品をいくつか登録
-        _addProduct("学習用商品A", 10 * (10**token.decimals())); // 例: 10トークン (decimalsを考慮)
-        _addProduct("学習用商品B", 50 * (10**token.decimals())); // 例: 50トークン
+        _addProduct("SampleProductA", 10 * (10**token.decimals())); // 例: 10トークン (decimalsを考慮)
+        _addProduct("SampleProductB", 50 * (10**token.decimals())); // 例: 50トークン
     }
 
     // オーナーが商品を追加する (学習用なので簡易的に)

@@ -79,133 +79,50 @@
 
 #### 4.1. `MyToken.sol` (ERC-20準拠トークン)
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol"; // Faucetの管理用（任意）
-
-contract MyToken is ERC20, Ownable {
-    constructor(string memory name, string memory symbol, uint256 initialSupply) ERC20(name, symbol) {
-        // 初期供給量をデプロイ者にミントする (任意)
-        if (initialSupply > 0) {
-            _mint(msg.sender, initialSupply * (10**decimals()));
-        }
-    }
-
-    // 学習用のFaucet機能: 誰でも少量のトークンを取得可能
-    function faucet() external {
-        // 1回に取得できる量 (例: 100トークン)
-        // 頻度制限などを入れる場合はより複雑になるが、今回はシンプルに
-        require(balanceOf(address(this)) >= 100 * (10**decimals()), "Faucet is empty"); // コントラクトがトークンを持っているか
-        _transfer(address(this), msg.sender, 100 * (10**decimals())); // もしコントラクトがトークンを保持している場合
-        // もしくは、mintで新規発行する形でも良い (その場合はOwnableである必要性は薄れるかも)
-        // _mint(msg.sender, 100 * (10**decimals()));
-    }
-
-    // Faucetにトークンを供給する関数 (オーナーのみ)
-    // Faucetをmintで実装する場合は不要
-    function fundFaucet(uint256 amount) external onlyOwner {
-        _mint(address(this), amount);
-    }
-}
-```
-
-* **備考:** OpenZeppelinのERC20実装を継承することで、標準機能は網羅されます。`faucet()`関数は、呼び出し元に一定量のトークンを送付します。Faucetのトークン供給源として、コントラクト自体がトークンを保持する（デプロイ時や`fundFaucet`で供給）か、`faucet`関数内で直接`_mint`するかを選択できます。
 
 #### 4.2. `Shop.sol` (商品交換コントラクト)
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol"; // 商品追加の管理用
-
-contract Shop is Ownable {
-    IERC20 public immutable token; // 使用するERC20トークン
-
-    struct Product {
-        uint256 id;
-        string name;
-        uint256 price; // トークン建ての価格
-        bool isActive; // 商品が購入可能か
-    }
-
-    mapping(uint256 => Product) public products;
-    uint256 public nextProductId;
-
-    event ProductAdded(uint256 id, string name, uint256 price);
-    event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price);
-
-    constructor(address tokenAddress) {
-        token = IERC20(tokenAddress);
-        // 学習用に初期商品をいくつか登録
-        _addProduct("学習用商品A", 10 * (10**token.decimals())); // 例: 10トークン (decimalsを考慮)
-        _addProduct("学習用商品B", 50 * (10**token.decimals())); // 例: 50トークン
-    }
-
-    // オーナーが商品を追加する (学習用なので簡易的に)
-    function addProduct(string memory _name, uint256 _price) external onlyOwner {
-       _addProduct(_name, _price);
-    }
-
-    function _addProduct(string memory _name, uint256 _price) internal {
-        products[nextProductId] = Product(nextProductId, _name, _price, true);
-        emit ProductAdded(nextProductId, _name, _price);
-        nextProductId++;
-    }
-
-    // 商品情報を取得するビュー関数 (フロントエンドが商品リストを表示するため)
-    // 全商品を取得するのはガス効率が悪い場合があるため、ID指定やページネーションを検討するが、今回はシンプルに
-    function getProduct(uint256 _productId) external view returns (uint256 id, string memory name, uint256 price, bool isActive) {
-        Product storage product = products[_productId];
-        return (product.id, product.name, product.price, product.isActive);
-    }
-
-    function purchaseProduct(uint256 _productId) external {
-        Product storage product = products[_productId];
-        require(product.isActive, "Product is not available");
-        require(product.price > 0, "Product price must be greater than 0"); // 念のため
-
-        uint256 currentAllowance = token.allowance(msg.sender, address(this));
-        require(currentAllowance >= product.price, "Check token allowance");
-
-        // トークンをユーザーからこのコントラクトへ転送
-        // require(token.transferFrom(msg.sender, address(this), product.price), "Token transfer failed");
-        // transferFromの戻り値はboolではない場合もあるので注意（OpenZeppelinはvoid）
-        // エラー時はrevertするので、戻り値チェックは不要なことが多い
-        token.transferFrom(msg.sender, address(this), product.price);
-
-        // (実物資産の処理はこのスコープ外。イベントを発行してオフチェーンで検知・処理)
-        emit ProductPurchased(msg.sender, _productId, product.price);
-
-        // (任意) 購入されたら商品を非アクティブにするなど
-        // product.isActive = false;
-    }
-}
-```
-
-* **備考:** 商品情報はコントラクト内に`struct`と`mapping`で保持します。`purchaseProduct`関数は、ユーザーが事前にShopコントラクトに対してトークンの使用を`approve`していることを前提とします。購入が成功すると`ProductPurchased`イベントが発行されます。
 
 ### 5. 主要なユーザーストーリー/フロー
 
-1.  **ユーザーがウォレットを接続する:**
-    * アプリを開く → 「ウォレット接続」ボタンをクリック → MetaMaskが起動し接続を要求 → ユーザーが承認 → アカウントアドレスとネットワークがアプリに表示される。
-2.  **ユーザーが独自トークンを取得する:**
-    * 「トークン管理」セクションの「トークンを取得する」ボタンをクリック → MetaMaskがトランザクション（Faucet関数の呼び出し）の承認を要求 → ユーザーが承認 → トランザクションが成功 → ユーザーのトークン残高が増加し、アプリに反映される。
-3.  **ユーザーが商品を購入する:**
-    * 「商品リスト」から欲しい商品を選ぶ → 「購入する」ボタンをクリック。
-    * **Step 1: Approve (初回または上限不足時):**
-        * アプリがShopコントラクトに必要な額のトークン使用許可（`approve`）を促す。
-        * MetaMaskが`approve`トランザクションの承認を要求 → ユーザーが承認 → トランザクション成功。
-    * **Step 2: Purchase:**
-        * （Approve後）アプリが`purchaseProduct`関数を呼び出す。
-        * MetaMaskが`purchaseProduct`トランザクションの承認を要求 → ユーザーが承認 → トランザクション成功。
-        * ユーザーのトークン残高が減少し、Shopコントラクトのトークン残高が増加。
-        * アプリに「購入処理が完了しました」などのメッセージを表示。
-        * （実世界の処理として）オフチェーンシステムが`ProductPurchased`イベントを監視し、商品の発送準備を開始する（この部分はアプリのスコープ外）。
+役割:
+*   **管理者 (親):** トークンを子供に配布する役割。商品の購入はできない。
+*   **子供:** 管理者からトークンを受け取り、商品を購入する役割。
+
+1.  **共通: ユーザー (管理者または子供) がウォレットを接続する:**
+    *   アプリを開く → 「ウォレット接続」ボタンをクリック → MetaMaskが起動し接続を要求 → ユーザーが承認 → アカウントアドレスとネットワークがアプリに表示される。
+    *   アプリは接続されたアカウントが管理者か子供かを識別する（識別方法は別途定義。例: コントラクトに登録されたアドレスリスト）。
+
+2.  **管理者: 子供アカウントにトークンを送付する:**
+    *   管理者としてウォレットを接続。
+    *   トークン管理画面（または専用の送付画面）で、送付先の子供のウォレットアドレスと送付するトークン量を入力。
+    *   「送付する」ボタンをクリック。
+    *   MetaMaskがトークン送付トランザクション（`MyToken.sol` の `transfer` 関数を想定）の承認を要求。
+    *   管理者が承認 → トランザクションが成功。
+    *   子供のトークン残高が増加し、管理者のトークン残高が減少する。アプリ上で確認できる。
+
+3.  **子供: トークン残高を確認する:**
+    *   子供としてウォレットを接続。
+    *   トークン管理画面で自分のトークン残高を確認。管理者から送付されたトークンが反映されていることを確認する。
+    *   (備考: 従来のFaucet機能は廃止、または管理者のみが初期トークンをMintし子供に配布する形に変更)
+
+4.  **子供: 商品を購入する:**
+    *   子供としてウォレットを接続。
+    *   「商品リスト」から欲しい商品を選ぶ → 「購入する」ボタンをクリック。
+    *   **Step 1: Approve (初回または上限不足時):**
+        *   アプリがShopコントラクトに必要な額のトークン使用許可（`MyToken.sol` の `approve` 関数）を促す。
+        *   MetaMaskが `approve` トランザクションの承認を要求 → 子供が承認 → トランザクション成功。
+    *   **Step 2: Purchase:**
+        *   （Approve後）アプリが `Shop.sol` の `purchaseProduct` 関数（子供専用の購入関数を想定）を呼び出す。
+        *   MetaMaskが `purchaseProduct` トランザクションの承認を要求 → 子供が承認 → トランザクション成功。
+        *   子供のトークン残高が減少し、Shopコントラクトのトークン残高が増加（またはバーンされる）。
+        *   アプリに「購入処理が完了しました」などのメッセージを表示。
+        *   （実世界の処理として）オフチェーンシステムが `ProductPurchased` イベントを監視し、商品の発送準備を開始する（この部分はアプリのスコープ外）。
+
+5.  **管理者: 商品リストの閲覧 (購入不可):**
+    *   管理者としてウォレットを接続。
+    *   商品リストを閲覧できるが、「購入する」ボタンは非表示または無効化されている。
+    *   `Shop.sol` の購入関数は子供からの呼び出しのみを許可する制御（例: `modifier onlyChild`）が実装されている。
 
 ### 6. 開発ステップの提案
 
