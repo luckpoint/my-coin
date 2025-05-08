@@ -133,17 +133,51 @@
         import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
 
         // --- スマートコントラクト設定 (重要: ご自身のものに置き換えてください) ---
-        const MY_TOKEN_ADDRESS = "0xActualMyTokenContractAddressHere";
-        const MY_TOKEN_ABI = [ /* MyToken.sol のABI - 前回のものと同じ */
+        const MY_TOKEN_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const MY_TOKEN_ABI = [ 
             "constructor(string name, string symbol, uint256 initialSupplyToOwner)",
-            "event Approval(address indexed owner, address indexed spender, uint256 value)","event FaucetFunded(address indexed funder, uint256 amount)","event FaucetTokensTaken(address indexed recipient, uint256 amount)","event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)","event TokensClaimedByChild(address indexed child, uint256 amountClaimed)","event TokensPendingForChild(address indexed child, uint256 amountPrepared, uint256 newTotalPending)","event Transfer(address indexed from, address indexed to, uint256 value)",
-            "function allowance(address owner, address spender) view returns (uint256)","function approve(address spender, uint256 amount) returns (bool)","function balanceOf(address account) view returns (uint256)","function claimMyTokens() external","function decimals() view returns (uint8)","function faucet() external","function fundFaucetSupply(uint256 amount) external","function getMyPendingTokens() view returns (uint256)","function name() view returns (string)","function owner() view returns (address)","function pendingTokensForChild(address) view returns (uint256)","function renounceOwnership() external","function setPendingTokens(address child, uint256 amount) external","function symbol() view returns (string)","function totalSupply() view returns (uint256)","function transfer(address to, uint256 amount) returns (bool)","function transferFrom(address from, address to, uint256 amount) returns (bool)","function transferOwnership(address newOwner) external"
+            "event Approval(address indexed owner, address indexed spender, uint256 value)",
+            "event FaucetFunded(address indexed funder, uint256 amount)",
+            "event FaucetTokensTaken(address indexed recipient, uint256 amount)",
+            "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
+            "event TokensClaimedByChild(address indexed child, uint256 amountClaimed)",
+            "event TokensPendingForChild(address indexed child, uint256 amountPrepared, uint256 newTotalPending)",
+            "event Transfer(address indexed from, address indexed to, uint256 value)",
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function balanceOf(address account) view returns (uint256)",
+            "function claimMyTokens() external",
+            "function decimals() view returns (uint8)",
+            "function faucet() external",
+            "function fundFaucetSupply(uint256 amount) external",
+            "function getMyPendingTokens() view returns (uint256)",
+            "function name() view returns (string)",
+            "function owner() view returns (address)",
+            "function pendingTokensForChild(address) view returns (uint256)",
+            "function renounceOwnership() external",
+            "function setPendingTokens(address child, uint256 amount) external",
+            "function symbol() view returns (string)",
+            "function totalSupply() view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+            "function transferOwnership(address newOwner) external"
         ];
 
-        const SHOP_CONTRACT_ADDRESS = "0xActualShopContractAddressHere";
-        const SHOP_ABI = [ /* Shop.sol のABI - 前回のものと同じ */
-            "constructor(address tokenAddress)","event ProductAdded(uint256 indexed productId, uint256 price)","event ProductDeactivated(uint256 indexed productId)","event ProductPriceUpdated(uint256 indexed productId, uint256 newPrice)","event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price)",
-            "function addNewProduct(uint256 _price) external returns (uint256 productId)","function deactivateProduct(uint256 _productId) external","function getProductCount() view returns (uint256)","function getProductPrice(uint256 _productId) view returns (uint256)","function nextProductId() view returns (uint256)","function owner() view returns (address)","function products(uint256) view returns (uint256 id, uint256 price)","function purchaseProduct(uint256 _productId) external","function reactivateProduct(uint256 _productId, uint256 _newPrice) external","function renounceOwnership() external","function token() view returns (address)","function transferOwnership(address newOwner) external","function updateProductPrice(uint256 _productId, uint256 _newPrice) external"
+        const SHOP_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+        const SHOP_ABI = [ /* Shop.sol ABI based on contract content */
+            "constructor(address tokenAddress)",
+            "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
+            "event ProductAdded(uint256 id, string name, uint256 price)",
+            "event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price)",
+            "function addProduct(string _name, uint256 _price) external",
+            "function getProduct(uint256 _productId) view returns (uint256 id, string name, uint256 price, bool isActive)",
+            "function nextProductId() view returns (uint256)",
+            "function owner() view returns (address)",
+            "function products(uint256) view returns (uint256 id, string name, uint256 price, bool isActive)",
+            "function purchaseProduct(uint256 _productId) external",
+            "function renounceOwnership() external",
+            "function token() view returns (address)",
+            "function transferOwnership(address newOwner) external"
         ];
         // --- ここまでスマートコントラクト設定 ---
 
@@ -553,8 +587,8 @@
 
             productListChildDiv.innerHTML = '<div class="d-flex justify-content-center mt-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">商品を読み込み中...</span></div></div>';
             try {
-                const productCountBN = await displayContract.getProductCount();
-                const productCount = Number(productCountBN);
+                const nextIdBN = await displayContract.nextProductId(); // Changed from getProductCount
+                const productCount = Number(nextIdBN); // nextProductId gives the count of products (0 to count-1)
                 
                 if (productCount === 0) {
                     productListChildDiv.innerHTML = '<p class="text-muted">現在販売中の商品はありません。</p>';
@@ -563,20 +597,26 @@
 
                 productListChildDiv.innerHTML = ''; // Clear loading
                 let displayedCount = 0;
-                for (let i = 0; i < productCount; i++) {
-                    const priceBN = await displayContract.getProductPrice(i);
-                    // productsMetadata should be pre-populated or fetched if dynamic
-                    const metadata = productsMetadata[i] || { name: `商品ID: ${i}`, imagePlaceholder: '商品画像', isActive: true }; 
+                for (let i = 0; i < productCount; i++) { // 'i' will be the productId
+                    const productInfo = await displayContract.getProduct(i);
+                    // productInfo should be { id: BigInt, name: string, price: BigInt, isActive: bool }
+                    const priceBN = productInfo.price;
+                    const onChainName = productInfo.name;
+                    const isActiveOnChain = productInfo.isActive;
+
+                    const metadata = productsMetadata[i] || {}; // 'i' is the productId
+                    const displayName = metadata.name || onChainName; // Prefer local name, fallback to on-chain
+                    const imagePlaceholder = metadata.imagePlaceholder || '商品画像'; // Default if not in metadata
                     
-                    if (priceBN > 0n && metadata.isActive) {
+                    if (isActiveOnChain && priceBN > 0n) { // Use on-chain isActive status
                         displayedCount++;
                         const priceString = ethers.formatUnits(priceBN, tokenDecimals);
                         const productCard = `
                             <div class="col">
                                 <div class="card h-100 product-card">
-                                    <div class="product-img-placeholder">${metadata.imagePlaceholder}</div>
+                                    <div class="product-img-placeholder">${imagePlaceholder}</div>
                                     <div class="card-body d-flex flex-column">
-                                        <h5 class="card-title">${metadata.name}</h5>
+                                        <h5 class="card-title">${displayName}</h5>
                                         <p class="card-text mt-auto">価格: <strong>${priceString} ${childTokenSymbolBalanceSpan.textContent || 'MTK'}</strong></p>
                                         <button class="btn btn-primary w-100 mt-2 purchase-btn-child" data-product-id="${i}" data-price-wei="${priceBN.toString()}" ${!signer ? 'disabled' : ''}>
                                             購入する
@@ -654,20 +694,21 @@
             btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 追加中...';
             
             try {
-                const tx = await shopContract.addNewProduct(priceInWei); 
+                const tx = await shopContract.addProduct(name, priceInWei); 
                 const receipt = await tx.wait();
                 let newProductId;
                 const log = receipt.logs.find(l => { 
                     try { const pL = shopContract.interface.parseLog(l); return pL && pL.name === "ProductAdded"; } catch(e){return false;} 
                 });
                 if (log) {
-                    newProductId = Number(shopContract.interface.parseLog(log).args.productId);
+                    newProductId = Number(shopContract.interface.parseLog(log).args.id); // Changed from productId to id
                 } else { 
-                    const c = await shopContract.getProductCount(); newProductId = Number(c) -1; 
+                    const c = await shopContract.nextProductId(); // Changed from getProductCount
+                    newProductId = Number(c) -1; // If nextProductId() is new_id_to_be_assigned, then current_new_id is new_id_to_be_assigned -1
                     showNotification("商品追加イベント解析失敗。IDは推定値。", "warning", false);
                 }
                 showNotification(`商品(ID:${newProductId})がオンチェーンに登録されました。`, "success");
-                productsMetadata[newProductId] = { name, imagePlaceholder, isActive: true }; 
+                productsMetadata[newProductId] = { name, imagePlaceholder, isActive: true }; // isActive here is for local cache, on-chain is source of truth for display
                 saveMetadataToLocalStorage();
                 addProductForm.reset(); 
                 if (currentMode === 'child') await renderProductsForChild(); // If admin is also in child view
