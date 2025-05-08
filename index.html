@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token DApp - 管理者・子どもモード</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .container { max-width: 960px; }
+        .card, .section-box { border-radius: 0.75rem; box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.075); }
+        .btn { border-radius: 0.375rem; }
+        .navbar { border-bottom: 1px solid #dee2e6; }
+        .product-img-placeholder { width: 100%; height: 180px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 1.2rem; border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem; }
+        .section-box { background-color: #ffffff; padding: 2rem; margin-bottom: 2rem; }
+        .navbar-brand strong { font-weight: 700; }
+        .admin-mode-panel h3 { color: #0dcaf0; } /* Token Admin Panel Title */
+        .child-mode-panel h3 { color: #198754; } /* Child Claim Panel Title */
+        .shop-admin-panel h3 { color: #fd7e14; } /* Shop Admin Panel Title */
+        .mode-switch-btn.active { font-weight: bold; }
+        .icon-admin { margin-right: 0.3em; vertical-align: text-bottom;}
+        .icon-child { margin-right: 0.3em; vertical-align: text-bottom;}
+        .icon-shield { margin-right: 0.3em; vertical-align: text-bottom;}
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="#"><strong>Token</strong> DApp</a>
+            <button id="connectWalletBtn" class="btn btn-primary">ウォレット接続</button>
+        </div>
+    </nav>
+
+    <div class="container mt-3 mb-4">
+        <div class="btn-group w-100" role="group" aria-label="Mode Switch">
+            <button type="button" class="btn btn-outline-primary mode-switch-btn" data-mode="admin" id="adminModeBtn" style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill-gear icon-admin" viewBox="0 0 16 16">
+                  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-9 8c0 1 1 1 1 1h5.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.544-3.393C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4Zm9.886-3.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382l.045-.148ZM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"/>
+                </svg>
+                管理者モード
+            </button>
+            <button type="button" class="btn btn-outline-success mode-switch-btn active" data-mode="child">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-arms-up icon-child" viewBox="0 0 16 16">
+                  <path d="M8 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
+                  <path d="m5.93 6.704-.846 8.451L4.043 15l-2.437-1.526.234-2.341L.533 9.5l2.64-1.65L4 6.453l.002-.002.313-1.037a.5.5 0 0 1 .963-.062l.359 1.076-.004.004ZM10.07 6.704l.846 8.451L11.957 15l2.437-1.526-.234-2.341L15.467 9.5l-2.64-1.65L12 6.453l-.002-.002-.313-1.037a.5.5 0 0 0-.963-.062l-.359 1.076.004.004Z"/>
+                </svg>
+                子どもモード
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="walletInfo" class="mb-4 p-3 bg-light border rounded" style="display: none;">
+            <p class="mb-1"><strong>ネットワーク:</strong> <span id="networkName">-</span></p>
+            <p class="mb-0"><strong>アカウント:</strong> <span id="accountAddress">-</span> (<span id="accountRoleToken">一般</span><span id="accountRoleShopSeparator" style="display:none;">, </span><span id="accountRoleShop" style="display:none;"></span>)</p>
+        </div>
+
+        <div id="notificationArea"></div>
+
+        <section id="adminModeContent" class="section-box admin-mode-panel" style="display: none;">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-person-fill-gear icon-admin" viewBox="0 0 16 16">
+                  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-9 8c0 1 1 1 1 1h5.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.544-3.393C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4Zm9.886-3.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382l.045-.148ZM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"/>
+                </svg>
+                管理者モード (トークン操作)
+            </h3>
+            <form id="setPendingTokensForm">
+                <div class="mb-3">
+                    <label for="childAddressInput" class="form-label">子どものEthereumアドレス</label>
+                    <input type="text" class="form-control" id="childAddressInput" placeholder="0x..." required>
+                </div>
+                <p>上記アドレスの子どもに <strong>100 <span id="tokenAdminSymbol">MTK</span></strong> のコインを付与準備します。</p>
+                <button type="submit" class="btn btn-primary">100コイン付与準備</button>
+            </form>
+            <hr>
+            <div id="shopAdminPanelContainer" style="display:none;">
+                 <div class="mt-4 shop-admin-panel">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-shield icon-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        ショップ商品管理
+                    </h3>
+                    <div class="mb-4">
+                        <h4>新しい商品を追加</h4>
+                        <form id="addProductForm">
+                            <div class="mb-3"><label for="newProductName" class="form-label">商品名 (オフチェーン)</label><input type="text" class="form-control" id="newProductName" required></div>
+                            <div class="mb-3"><label for="newProductPrice" class="form-label">価格 (オンチェーン, <span id="shopAdminTokenSymbol1">MTK</span>単位)</label><input type="number" class="form-control" id="newProductPrice" step="0.01" min="0.01" required></div>
+                            <div class="mb-3"><label for="newProductImagePlaceholder" class="form-label">画像プレースホルダー (オフチェーン)</label><input type="text" class="form-control" id="newProductImagePlaceholder" placeholder="例: 商品の簡単な説明"></div>
+                            <button type="submit" class="btn btn-warning">商品を追加</button>
+                        </form>
+                    </div>
+                    <hr>
+                    <div>
+                        <h4>既存商品の価格を更新</h4>
+                        <form id="updatePriceForm">
+                            <div class="mb-3"><label for="updateProductId" class="form-label">商品ID</label><input type="number" class="form-control" id="updateProductId" min="0" required></div>
+                            <div class="mb-3"><label for="updateProductNewPrice" class="form-label">新しい価格 (<span id="shopAdminTokenSymbol2">MTK</span>単位)</label><input type="number" class="form-control" id="updateProductNewPrice" step="0.01" min="0.01" required></div>
+                            <button type="submit" class="btn btn-info">価格を更新</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="childModeContent" class="section-box child-mode-panel" style="display: none;">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-person-arms-up icon-child" viewBox="0 0 16 16">
+                  <path d="M8 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
+                  <path d="m5.93 6.704-.846 8.451L4.043 15l-2.437-1.526.234-2.341L.533 9.5l2.64-1.65L4 6.453l.002-.002.313-1.037a.5.5 0 0 1 .963-.062l.359 1.076-.004.004ZM10.07 6.704l.846 8.451L11.957 15l2.437-1.526-.234-2.341L15.467 9.5l-2.64-1.65L12 6.453l-.002-.002-.313-1.037a.5.5 0 0 0-.963-.062l-.359 1.076.004.004Z"/>
+                </svg>
+                子どもモード
+            </h3>
+            
+            <div class="card mb-4">
+                <div class="card-header">コイン情報</div>
+                <div class="card-body">
+                    <p>あなたの残高: <strong id="tokenBalanceChild">0</strong> <span id="childTokenSymbolBalance">MTK</span></p>
+                    <p>あなたが受け取れる保留中のコイン: <strong id="myPendingTokensAmountSpan">0</strong> <span id="childTokenSymbolPending">MTK</span></p>
+                    <button id="claimMyTokensBtn" class="btn btn-success mb-2" disabled>保留中のコインを受け取る</button>
+                    <button id="faucetBtnChild" class="btn btn-info" disabled>100 <span id="childTokenSymbolFaucet">MTK</span> をFaucetから取得</button>
+                </div>
+            </div>
+
+            <h4>ショッピング</h4>
+            <div id="productListChild" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                </div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script>
+        // --- スマートコントラクト設定 (重要: ご自身のものに置き換えてください) ---
+        const MY_TOKEN_ADDRESS = "YOUR_MYTOKEN_CONTRACT_ADDRESS";
+        const MY_TOKEN_ABI = [ /* MyToken.sol のABI - 前回のものと同じ */
+            "constructor(string name, string symbol, uint256 initialSupplyToOwner)",
+            "event Approval(address indexed owner, address indexed spender, uint256 value)","event FaucetFunded(address indexed funder, uint256 amount)","event FaucetTokensTaken(address indexed recipient, uint256 amount)","event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)","event TokensClaimedByChild(address indexed child, uint256 amountClaimed)","event TokensPendingForChild(address indexed child, uint256 amountPrepared, uint256 newTotalPending)","event Transfer(address indexed from, address indexed to, uint256 value)",
+            "function allowance(address owner, address spender) view returns (uint256)","function approve(address spender, uint256 amount) returns (bool)","function balanceOf(address account) view returns (uint256)","function claimMyTokens() external","function decimals() view returns (uint8)","function faucet() external","function fundFaucetSupply(uint256 amount) external","function getMyPendingTokens() view returns (uint256)","function name() view returns (string)","function owner() view returns (address)","function pendingTokensForChild(address) view returns (uint256)","function renounceOwnership() external","function setPendingTokens(address child, uint256 amount) external","function symbol() view returns (string)","function totalSupply() view returns (uint256)","function transfer(address to, uint256 amount) returns (bool)","function transferFrom(address from, address to, uint256 amount) returns (bool)","function transferOwnership(address newOwner) external"
+        ];
+
+        const SHOP_CONTRACT_ADDRESS = "YOUR_SHOP_CONTRACT_ADDRESS";
+        const SHOP_ABI = [ /* Shop.sol のABI - 前回のものと同じ */
+            "constructor(address tokenAddress)","event ProductAdded(uint256 indexed productId, uint256 price)","event ProductDeactivated(uint256 indexed productId)","event ProductPriceUpdated(uint256 indexed productId, uint256 newPrice)","event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price)",
+            "function addNewProduct(uint256 _price) external returns (uint256 productId)","function deactivateProduct(uint256 _productId) external","function getProductCount() view returns (uint256)","function getProductPrice(uint256 _productId) view returns (uint256)","function nextProductId() view returns (uint256)","function owner() view returns (address)","function products(uint256) view returns (uint256 id, uint256 price)","function purchaseProduct(uint256 _productId) external","function reactivateProduct(uint256 _productId, uint256 _newPrice) external","function renounceOwnership() external","function token() view returns (address)","function transferOwnership(address newOwner) external","function updateProductPrice(uint256 _productId, uint256 _newPrice) external"
+        ];
+        // --- ここまでスマートコントラクト設定 ---
+
+        let provider, signer, myTokenContract, shopContract, userAddress;
+        let tokenDecimals = 18;
+        let isShopAdmin = false;
+        let isTokenAdmin = false;
+        let currentMode = 'child'; // Default mode
+
+        let productsMetadata = {};
+
+        // DOM要素
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        const walletInfoDiv = document.getElementById('walletInfo');
+        const networkNameSpan = document.getElementById('networkName');
+        const accountAddressSpan = document.getElementById('accountAddress');
+        const accountRoleShopSpan = document.getElementById('accountRoleShop');
+        const accountRoleShopSeparatorSpan = document.getElementById('accountRoleShopSeparator');
+        const accountRoleTokenSpan = document.getElementById('accountRoleToken');
+        
+        const tokenSymbolSpan = document.getElementById('tokenSymbol'); // Generic, might be removed if not used globally
+        // const tokenSymbolDisplaySpan = document.getElementById('tokenSymbolDisplay'); // Used in old faucet
+        // const faucetTokenSymbolSpan = document.getElementById('faucetTokenSymbol'); // Used in old faucet
+        // const tokenBalanceSpan = document.getElementById('tokenBalance'); // Used in old faucet
+        // const faucetBtn = document.getElementById('faucetBtn'); // Old faucet button
+
+        const notificationArea = document.getElementById('notificationArea');
+        
+        // Mode Switch UI
+        const modeSwitchButtons = document.querySelectorAll('.mode-switch-btn');
+        const adminModeBtn = document.getElementById('adminModeBtn');
+        const adminModeContentDiv = document.getElementById('adminModeContent');
+        const childModeContentDiv = document.getElementById('childModeContent');
+
+        // Admin Mode (Token) UI
+        const setPendingTokensForm = document.getElementById('setPendingTokensForm');
+        const childAddressInput = document.getElementById('childAddressInput');
+        // const childAmountInput = document.getElementById('childAmountInput'); // Removed, fixed to 100
+        const tokenAdminSymbolSpan = document.getElementById('tokenAdminSymbol');
+
+        // Admin Mode (Shop - within Admin Mode Content)
+        const shopAdminPanelContainer = document.getElementById('shopAdminPanelContainer');
+        const addProductForm = document.getElementById('addProductForm');
+        const updatePriceForm = document.getElementById('updatePriceForm');
+        const shopAdminTokenSymbol1Span = document.getElementById('shopAdminTokenSymbol1');
+        const shopAdminTokenSymbol2Span = document.getElementById('shopAdminTokenSymbol2');
+
+
+        // Child Mode UI
+        const tokenBalanceChildSpan = document.getElementById('tokenBalanceChild');
+        const childTokenSymbolBalanceSpan = document.getElementById('childTokenSymbolBalance');
+        const myPendingTokensAmountSpan = document.getElementById('myPendingTokensAmountSpan');
+        const childTokenSymbolPendingSpan = document.getElementById('childTokenSymbolPending');
+        const claimMyTokensBtn = document.getElementById('claimMyTokensBtn');
+        const faucetBtnChild = document.getElementById('faucetBtnChild');
+        const childTokenSymbolFaucetSpan = document.getElementById('childTokenSymbolFaucet');
+        const productListChildDiv = document.getElementById('productListChild');
+
+
+        window.addEventListener('load', async () => {
+            connectWalletBtn.addEventListener('click', connectWallet);
+            
+            setPendingTokensForm.addEventListener('submit', handleSetPendingTokens); // Token Admin
+            claimMyTokensBtn.addEventListener('click', handleClaimMyTokens); // Child Claim
+            faucetBtnChild.addEventListener('click', handleFaucet); // Child Faucet
+
+            addProductForm.addEventListener('submit', handleAddProduct); 
+            updatePriceForm.addEventListener('submit', handleUpdatePrice); 
+
+            modeSwitchButtons.forEach(button => {
+                button.addEventListener('click', () => switchMode(button.dataset.mode));
+            });
+            
+            loadMetadataFromLocalStorage();
+
+            if (typeof window.ethereum !== 'undefined') {
+                window.ethereum.on('accountsChanged', handleAccountsChanged);
+                window.ethereum.on('chainChanged', (_chainId) => window.location.reload());
+            }
+            switchMode(currentMode); // Initialize with default mode
+            // await renderProducts(); // Render products for child mode initially if needed
+        });
+
+        function switchMode(newMode) {
+            if (!signer && (newMode === 'admin')) {
+                 showNotification("管理者はウォレット接続後に利用可能です。", "warning");
+                 return; // 管理者モードはウォレット接続が必須
+            }
+            currentMode = newMode;
+            console.log("Switched to mode:", currentMode);
+            updateUIVisibility();
+
+            modeSwitchButtons.forEach(btn => {
+                if (btn.dataset.mode === newMode) {
+                    btn.classList.add('active');
+                    // btn.classList.add('btn-' + getModeColor(newMode)); // Color change can be complex with outlines
+                    // btn.classList.remove('btn-outline-' + getModeColor(newMode));
+                } else {
+                    btn.classList.remove('active');
+                    // btn.classList.remove('btn-' + getModeColor(btn.dataset.mode));
+                    // btn.classList.add('btn-outline-' + getModeColor(btn.dataset.mode));
+                }
+            });
+            
+            if (signer) { // Only if wallet is connected
+                if (currentMode === 'child') {
+                    displayMyPendingTokens();
+                    renderProductsForChild(); // Render products for child
+                    updateChildTokenBalance(); // Update balance in child mode
+                } else if (currentMode === 'admin') {
+                    // Admin mode specific initializations if any
+                }
+            }
+        }
+
+        function updateUIVisibility() {
+            adminModeContentDiv.style.display = currentMode === 'admin' && isTokenAdmin ? 'block' : 'none';
+            childModeContentDiv.style.display = currentMode === 'child' ? 'block' : 'none';
+            
+            adminModeBtn.style.display = isTokenAdmin ? 'inline-block' : 'none';
+            shopAdminPanelContainer.style.display = currentMode === 'admin' && isShopAdmin ? 'block' : 'none';
+
+
+            // If current mode is admin but user is not token admin, switch to child
+            if (currentMode === 'admin' && !isTokenAdmin && signer) { // Added signer check
+                switchMode('child');
+            }
+            // If wallet not connected, default to child view but with limitations
+            if (!signer) {
+                childModeContentDiv.style.display = 'block'; // Show child mode structure
+                adminModeContentDiv.style.display = 'none';
+                adminModeBtn.style.display = 'none'; // Hide admin button if not connected
+                shopAdminPanelContainer.style.display = 'none';
+                // Disable buttons in child mode that require signer
+                claimMyTokensBtn.disabled = true;
+                faucetBtnChild.disabled = true;
+                myPendingTokensAmountSpan.textContent = "ウォレット未接続";
+            }
+        }
+        
+        function handleAccountsChanged(accounts) {
+            if (accounts.length === 0) {
+                resetApp();
+            } else if (accounts[0].toLowerCase() !== userAddress) {
+                userAddress = accounts[0].toLowerCase();
+                initializeUserSession();
+            }
+        }
+        
+        async function initializeUserSession() {
+            if (!signer || !userAddress) return;
+            updateWalletInfoDisplay();
+            await checkShopAdminRole(); // For shop product management
+            await checkTokenAdminRole(); // For token distribution
+            updateUIVisibility(); 
+            if (myTokenContract) {
+                await getTokenInfo(); 
+                if (currentMode === 'child') {
+                    await updateChildTokenBalance();
+                    await displayMyPendingTokens();
+                    await renderProductsForChild();
+                }
+            }
+        }
+
+        function resetApp() {
+            walletInfoDiv.style.display = 'none';
+            accountAddressSpan.textContent = '-';
+            networkNameSpan.textContent = '-';
+            accountRoleTokenSpan.textContent = '一般';
+            accountRoleShopSpan.style.display = 'none';
+            accountRoleShopSeparatorSpan.style.display = 'none';
+            
+            connectWalletBtn.textContent = 'ウォレット接続';
+            connectWalletBtn.disabled = false;
+            
+            provider = null; signer = null; myTokenContract = null; shopContract = null;
+            userAddress = null; isShopAdmin = false; isTokenAdmin = false;
+            
+            currentMode = 'child'; // Reset to child mode
+            updateUIVisibility();
+            // Clear dynamic content
+            myPendingTokensAmountSpan.textContent = "0";
+            tokenBalanceChildSpan.textContent = "0";
+            productListChildDiv.innerHTML = '<p class="text-muted">商品を読み込み中です...</p>';
+        }
+
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showNotification('MetaMaskがインストールされていません。', 'danger'); return;
+            }
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = (await signer.getAddress()).toLowerCase();
+
+                if (MY_TOKEN_ADDRESS === "YOUR_MYTOKEN_CONTRACT_ADDRESS" || SHOP_CONTRACT_ADDRESS === "YOUR_SHOP_CONTRACT_ADDRESS") {
+                    showNotification("コントラクトアドレスが設定されていません。", "danger"); resetApp(); return;
+                }
+                myTokenContract = new ethers.Contract(MY_TOKEN_ADDRESS, MY_TOKEN_ABI, signer);
+                shopContract = new ethers.Contract(SHOP_CONTRACT_ADDRESS, SHOP_ABI, signer);
+                
+                showNotification('ウォレットに接続しました！', 'success');
+                connectWalletBtn.textContent = '接続済み';
+                connectWalletBtn.disabled = true;
+                faucetBtnChild.disabled = false; // Enable child faucet on connect
+
+                await initializeUserSession();
+
+            } catch (error) {
+                console.error("ウォレット接続エラー:", error);
+                showNotificationError(error, "ウォレット接続エラー");
+                resetApp();
+            }
+        }
+        
+        async function checkShopAdminRole() {
+            if (!shopContract || !userAddress) { isShopAdmin = false; return; }
+            try {
+                const owner = (await shopContract.owner()).toLowerCase();
+                isShopAdmin = (owner === userAddress);
+                accountRoleShopSpan.textContent = isShopAdmin ? 'ショップ管理者' : '';
+                accountRoleShopSpan.style.display = isShopAdmin ? 'inline' : 'none';
+                accountRoleShopSeparatorSpan.style.display = isShopAdmin && isTokenAdmin ? 'inline' : 'none';
+            } catch (error) {
+                console.error("Shop管理者ロール確認エラー:", error); isShopAdmin = false;
+                accountRoleShopSpan.style.display = 'none';
+                accountRoleShopSeparatorSpan.style.display = 'none';
+            }
+        }
+        async function checkTokenAdminRole() {
+            if (!myTokenContract || !userAddress) { isTokenAdmin = false; return; }
+            try {
+                const owner = (await myTokenContract.owner()).toLowerCase();
+                isTokenAdmin = (owner === userAddress);
+                accountRoleTokenSpan.textContent = isTokenAdmin ? 'トークン管理者' : '一般';
+                 accountRoleShopSeparatorSpan.style.display = isShopAdmin && isTokenAdmin ? 'inline' : 'none';
+            } catch (error) {
+                console.error("Token管理者ロール確認エラー:", error); isTokenAdmin = false;
+                accountRoleTokenSpan.textContent = '一般 (確認失敗)';
+            }
+        }
+
+        function updateWalletInfoDisplay() {
+            if (!provider || !userAddress) return;
+            provider.getNetwork().then(network => {
+                networkNameSpan.textContent = network.name;
+            });
+            accountAddressSpan.textContent = userAddress;
+            walletInfoDiv.style.display = 'block';
+        }
+
+        async function getTokenInfo() {
+            if (!myTokenContract) return;
+            try {
+                const symbol = await myTokenContract.symbol();
+                const decimalsResult = await myTokenContract.decimals();
+                tokenDecimals = parseInt(decimalsResult.toString());
+                
+                // Update all relevant symbol spans
+                const symbolSpans = [
+                    tokenAdminSymbolSpan, childTokenSymbolBalanceSpan, 
+                    childTokenSymbolPendingSpan, childTokenSymbolFaucetSpan,
+                    shopAdminTokenSymbol1Span, shopAdminTokenSymbol2Span
+                ];
+                symbolSpans.forEach(span => { if(span) span.textContent = symbol; });
+
+            } catch (error) {
+                console.error("トークン情報取得エラー:", error);
+                // Fallback for all symbols
+                 const symbolSpans = [
+                    tokenAdminSymbolSpan, childTokenSymbolBalanceSpan, 
+                    childTokenSymbolPendingSpan, childTokenSymbolFaucetSpan,
+                    shopAdminTokenSymbol1Span, shopAdminTokenSymbol2Span
+                ];
+                symbolSpans.forEach(span => { if(span) span.textContent = "MTK"; });
+            }
+        }
+        
+        // --- Token Admin Mode Functions ---
+        async function handleSetPendingTokens(event) {
+            event.preventDefault();
+            if (!myTokenContract || !signer || !isTokenAdmin) {
+                showNotification("トークン管理者権限がないか、ウォレットが接続されていません。", "warning"); return;
+            }
+
+            const childAddr = childAddressInput.value;
+            const fixedAmountStr = "100"; // Fixed amount
+
+            if (!ethers.utils.isAddress(childAddr)) {
+                showNotification("有効な子どものアドレスを入力してください。", "warning"); return;
+            }
+            
+            const amountInWei = ethers.utils.parseUnits(fixedAmountStr, tokenDecimals);
+            const submitButton = setPendingTokensForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 準備中...';
+
+            try {
+                showNotification(`アドレス ${childAddr.substring(0,6)}... へ ${fixedAmountStr} ${tokenAdminSymbolSpan.textContent} の付与準備中です...`, "info", false);
+                const tx = await myTokenContract.setPendingTokens(childAddr, amountInWei);
+                await tx.wait();
+                showNotification(`100コインの付与準備が完了しました。子どもユーザーは「子どもモード」から受け取れます。`, "success");
+                setPendingTokensForm.reset(); // Reset only child address input
+                childAddressInput.value = ''; // Clear the input specifically
+            } catch (error) {
+                console.error("コイン付与準備エラー:", error);
+                showNotificationError(error, "コイン付与準備エラー");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '100コイン付与準備';
+            }
+        }
+
+        // --- Child Mode Functions ---
+        async function updateChildTokenBalance() {
+            if (!myTokenContract || !userAddress) {
+                tokenBalanceChildSpan.textContent = "ウォレット未接続";
+                return;
+            }
+            try {
+                const balance = await myTokenContract.balanceOf(userAddress);
+                tokenBalanceChildSpan.textContent = ethers.utils.formatUnits(balance, tokenDecimals);
+            } catch (error) {
+                console.error("子どもモード残高取得エラー:", error);
+                tokenBalanceChildSpan.textContent = "エラー";
+            }
+        }
+
+        async function displayMyPendingTokens() {
+            if (!myTokenContract || !signer) {
+                myPendingTokensAmountSpan.textContent = "ウォレット未接続";
+                claimMyTokensBtn.disabled = true;
+                return;
+            }
+            try {
+                const pendingAmountWei = await myTokenContract.getMyPendingTokens();
+                const pendingAmountFormatted = ethers.utils.formatUnits(pendingAmountWei, tokenDecimals);
+                myPendingTokensAmountSpan.textContent = pendingAmountFormatted;
+                claimMyTokensBtn.disabled = pendingAmountWei.isZero();
+            } catch (error) {
+                console.error("保留トークン額取得エラー:", error);
+                myPendingTokensAmountSpan.textContent = "取得エラー";
+                claimMyTokensBtn.disabled = true;
+                showNotificationError(error, "保留トークン額取得エラー");
+            }
+        }
+
+        async function handleClaimMyTokens() {
+            if (!myTokenContract || !signer) {
+                showNotification("ウォレットが接続されていません。", "warning"); return;
+            }
+            
+            claimMyTokensBtn.disabled = true;
+            claimMyTokensBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 受取中...';
+
+            try {
+                showNotification("保留中のコインを受け取り中です...", "info", false);
+                const tx = await myTokenContract.claimMyTokens();
+                await tx.wait();
+                showNotification("コインを受け取りました！残高を確認してください。", "success");
+                await updateChildTokenBalance(); 
+                await displayMyPendingTokens(); 
+            } catch (error) {
+                console.error("コイン受取エラー:", error);
+                showNotificationError(error, "コイン受取エラー");
+                await displayMyPendingTokens(); // Re-fetch pending tokens on error
+            } finally {
+                claimMyTokensBtn.innerHTML = '保留中のコインを受け取る'; 
+                // Disabled state will be re-evaluated by displayMyPendingTokens
+            }
+        }
+        
+        async function handleFaucet() { // This is now faucetBtnChild
+            if (!myTokenContract || !signer) { showNotification("ウォレットが接続されていません。", "warning"); return; }
+            showNotification("Faucetから100コインを取得中です...", "info", false);
+            faucetBtnChild.disabled = true;
+            try {
+                const tx = await myTokenContract.faucet(); // Assumes faucet gives 100 tokens
+                await tx.wait();
+                showNotification("100コインをFaucetから取得しました！", "success");
+                await updateChildTokenBalance();
+            } catch (error) {
+                console.error("Faucetエラー:", error);
+                showNotificationError(error, "Faucet処理エラー");
+            } finally {
+                faucetBtnChild.disabled = false;
+            }
+        }
+
+        async function renderProductsForChild() {
+            let displayContract = shopContract;
+            // If shopContract is not initialized but provider is, create a read-only instance
+            if (!displayContract && provider) {
+                try {
+                    if (SHOP_CONTRACT_ADDRESS === "YOUR_SHOP_CONTRACT_ADDRESS") { 
+                        productListChildDiv.innerHTML = '<p class="text-danger">Shopコントラクトアドレスが設定されていません。</p>'; return; 
+                    }
+                    displayContract = new ethers.Contract(SHOP_CONTRACT_ADDRESS, SHOP_ABI, provider);
+                } catch (e) { 
+                    productListChildDiv.innerHTML = '<p class="text-danger">Shopコントラクトの読み込みに失敗しました。</p>'; return; 
+                }
+            } else if (!displayContract) { // If provider also not available
+                 productListChildDiv.innerHTML = '<p class="text-muted">商品リストの読み込みに失敗しました (コントラクト未接続)。</p>'; return;
+            }
+
+            productListChildDiv.innerHTML = '<div class="d-flex justify-content-center mt-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">商品を読み込み中...</span></div></div>';
+            try {
+                const productCountBN = await displayContract.getProductCount();
+                const productCount = productCountBN.toNumber();
+                
+                if (productCount === 0) {
+                    productListChildDiv.innerHTML = '<p class="text-muted">現在販売中の商品はありません。</p>';
+                    return;
+                }
+
+                productListChildDiv.innerHTML = ''; // Clear loading
+                let displayedCount = 0;
+                for (let i = 0; i < productCount; i++) {
+                    const priceBN = await displayContract.getProductPrice(i);
+                    // productsMetadata should be pre-populated or fetched if dynamic
+                    const metadata = productsMetadata[i] || { name: `商品ID: ${i}`, imagePlaceholder: '商品画像', isActive: true }; 
+                    
+                    if (priceBN.gt(0) && metadata.isActive) {
+                        displayedCount++;
+                        const priceString = ethers.utils.formatUnits(priceBN, tokenDecimals);
+                        const productCard = `
+                            <div class="col">
+                                <div class="card h-100 product-card">
+                                    <div class="product-img-placeholder">${metadata.imagePlaceholder}</div>
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title">${metadata.name}</h5>
+                                        <p class="card-text mt-auto">価格: <strong>${priceString} ${childTokenSymbolBalanceSpan.textContent || 'MTK'}</strong></p>
+                                        <button class="btn btn-primary w-100 mt-2 purchase-btn-child" data-product-id="${i}" data-price-wei="${priceBN.toString()}" ${!signer ? 'disabled' : ''}>
+                                            購入する
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        productListChildDiv.insertAdjacentHTML('beforeend', productCard);
+                    }
+                }
+                if(displayedCount === 0) {
+                     productListChildDiv.innerHTML = '<p class="text-muted">現在購入可能な商品はありません。</p>';
+                }
+
+                document.querySelectorAll('.purchase-btn-child').forEach(button => {
+                    button.addEventListener('click', handlePurchaseChild);
+                });
+
+            } catch (error) {
+                console.error("子どもモード商品リスト取得エラー:", error);
+                showNotificationError(error, "商品リスト取得エラー");
+                productListChildDiv.innerHTML = '<p class="text-danger">商品リストの読み込み中にエラーが発生しました。</p>';
+            }
+        }
+        
+        async function handlePurchaseChild(event) {
+            if (!shopContract || !myTokenContract || !signer) { 
+                showNotification("ウォレットが接続されていません。", "warning"); return; 
+            }
+
+            const productId = event.target.dataset.productId;
+            const priceWei = ethers.BigNumber.from(event.target.dataset.priceWei);
+
+            const purchaseButton = event.target;
+            purchaseButton.disabled = true;
+            purchaseButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 処理中...';
+
+            try {
+                showNotification(`Shopコントラクトへのトークン使用許可 (Approve) を行っています...`, "info", false);
+                const approveTx = await myTokenContract.approve(SHOP_CONTRACT_ADDRESS, priceWei);
+                await approveTx.wait();
+                showNotification("トークン使用許可 (Approve) が完了しました。", "success", true); // Auto dismiss success
+
+                showNotification(`商品ID ${productId} の購入処理を実行中です...`, "info", false);
+                const purchaseTx = await shopContract.purchaseProduct(productId);
+                await purchaseTx.wait();
+
+                showNotification(`商品ID ${productId} の購入が完了しました！`, "success");
+                await updateChildTokenBalance(); 
+                // Optionally re-render products if stock changes, for now not needed
+            } catch (error) {
+                console.error("子どもモード購入処理エラー:", error);
+                showNotificationError(error, "購入処理エラー");
+            } finally {
+                purchaseButton.disabled = false;
+                purchaseButton.innerHTML = '購入する';
+            }
+        }
+        
+        // --- Shop Admin Functions (called from Admin Mode) ---
+        async function handleAddProduct(event) { 
+            event.preventDefault(); 
+            if (!shopContract || !signer || !isShopAdmin) { 
+                showNotification("ショップ管理者権限がないか、ウォレットが接続されていません。", "warning"); return; 
+            }
+            const name = document.getElementById('newProductName').value;
+            const priceString = document.getElementById('newProductPrice').value;
+            const imagePlaceholder = document.getElementById('newProductImagePlaceholder').value;
+
+            if (!name || !priceString) { showNotification("商品名と価格は必須です。", "warning"); return; }
+            
+            const priceInWei = ethers.utils.parseUnits(priceString, tokenDecimals);
+            const btn = addProductForm.querySelector('button[type="submit"]'); 
+            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 追加中...';
+            
+            try {
+                const tx = await shopContract.addNewProduct(priceInWei); 
+                const receipt = await tx.wait();
+                let newProductId;
+                const log = receipt.logs.find(l => { 
+                    try { const pL = shopContract.interface.parseLog(l); return pL && pL.name === "ProductAdded"; } catch(e){return false;} 
+                });
+                if (log) {
+                    newProductId = shopContract.interface.parseLog(log).args.productId.toNumber();
+                } else { 
+                    const c = await shopContract.getProductCount(); newProductId = c.toNumber() -1; 
+                    showNotification("商品追加イベント解析失敗。IDは推定値。", "warning", false);
+                }
+                showNotification(`商品(ID:${newProductId})がオンチェーンに登録されました。`, "success");
+                productsMetadata[newProductId] = { name, imagePlaceholder, isActive: true }; 
+                saveMetadataToLocalStorage();
+                addProductForm.reset(); 
+                if (currentMode === 'child') await renderProductsForChild(); // If admin is also in child view
+            } catch (e) { 
+                showNotificationError(e, "商品追加エラー"); 
+            } finally { 
+                btn.disabled = false; btn.innerHTML = '商品を追加'; 
+            }
+        }
+
+        async function handleUpdatePrice(event) { 
+            event.preventDefault(); 
+            if (!shopContract || !signer || !isShopAdmin) { 
+                showNotification("ショップ管理者権限がないか、ウォレットが接続されていません。", "warning"); return; 
+            }
+            const id = document.getElementById('updateProductId').value;
+            const priceStr = document.getElementById('updateProductNewPrice').value;
+
+            if (id === "" || !priceStr) { showNotification("商品IDと新しい価格は必須です。", "warning"); return; }
+            
+            const priceWei = ethers.utils.parseUnits(priceStr, tokenDecimals);
+            const btn = updatePriceForm.querySelector('button[type="submit"]'); 
+            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 更新中...';
+            
+            try {
+                const tx = await shopContract.updateProductPrice(id, priceWei); 
+                await tx.wait();
+                showNotification(`商品ID ${id} の価格が更新されました。`, "success");
+                updatePriceForm.reset(); 
+                if (currentMode === 'child') await renderProductsForChild();
+            } catch (e) { 
+                showNotificationError(e, "価格更新エラー"); 
+            } finally { 
+                btn.disabled = false; btn.innerHTML = '価格を更新'; 
+            }
+        }
+
+        // --- Utility Functions ---
+        function showNotification(message, type = 'info', autoDismiss = true) {
+            const existingAlert = notificationArea.querySelector(`.alert.alert-${type}.fade.show`); // More specific selector
+            if (existingAlert && autoDismiss) { 
+                const bsAlertInstance = bootstrap.Alert.getInstance(existingAlert);
+                if (bsAlertInstance) bsAlertInstance.close();
+            }
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+            notificationArea.prepend(alertDiv);
+
+            if (autoDismiss) {
+                setTimeout(() => {
+                    const currentBsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                    if (currentBsAlert) currentBsAlert.close();
+                }, 5000);
+            }
+        }
+        function showNotificationError(error, contextMessage = "エラー") {
+            let detail = error.reason || (error.data && error.data.message) || error.message || '不明なエラー';
+            // Clean up common revert prefixes
+            detail = detail.replace(/^execution reverted: /i, '');
+            detail = detail.replace(/^VM Exception while processing transaction: reverted with reason string '/i, '').replace(/'$/, '');
+            detail = detail.replace(/^Error: Transaction reverted without a reason string/i, 'トランザクションが理由なしでrevertされました');
+
+
+            showNotification(`${contextMessage}: ${detail}`, "danger", false); // Errors do not auto-dismiss
+        }
+        function saveMetadataToLocalStorage() { try { localStorage.setItem('productsMetadata', JSON.stringify(productsMetadata)); } catch (e) { console.warn("ローカルストレージへのメタデータ保存に失敗:", e); }}
+        function loadMetadataFromLocalStorage() { try { const s = localStorage.getItem('productsMetadata'); if (s) productsMetadata = JSON.parse(s); } catch (e) { console.warn("ローカルストレージからのメタデータ読み込みに失敗:", e); productsMetadata = {}; }}
+
+    </script>
+</body>
+</html>
