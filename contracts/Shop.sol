@@ -21,6 +21,7 @@ contract Shop is Ownable {
     event ProductAdded(uint256 id, string name, uint256 price);
     event ProductPurchased(address indexed buyer, uint256 indexed productId, uint256 price);
     event TokensWithdrawn(address indexed owner, uint256 amount);
+    event ProductPriceUpdated(uint256 indexed productId, uint256 newPrice);
 
     constructor(address tokenAddress) Ownable(msg.sender) {
         require(tokenAddress != address(0), "Shop: Token address cannot be zero");
@@ -46,6 +47,14 @@ contract Shop is Ownable {
     function getProduct(uint256 _productId) external view returns (uint256 id, string memory name, uint256 price, bool isActive) {
         Product storage product = products[_productId];
         return (product.id, product.name, product.price, product.isActive);
+    }
+
+    function updateProductPrice(uint256 _productId, uint256 _newPrice) external onlyOwner {
+        require(products[_productId].id == _productId || (products[_productId].id == 0 && _productId == 0), "Shop: Product does not exist"); // Check if product exists
+        require(_newPrice > 0, "Shop: Product price must be greater than zero");
+
+        products[_productId].price = _newPrice;
+        emit ProductPriceUpdated(_productId, _newPrice);
     }
 
     function purchaseProduct(uint256 _productId) external {
