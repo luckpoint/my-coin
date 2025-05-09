@@ -1,24 +1,19 @@
 ```
 token-shop-dapp/
-├── contracts/                  # Solidityスマートコントラクトファイル
-│   ├── MyToken.sol             # ERC20トークンコントラクト
-│   └── Shop.sol                # 商品交換コントラクト
+├── contracts/                  # Solidity smart contract files
+│   ├── MyToken.sol             # ERC20 token contract
+│   └── Shop.sol                # Product exchange contract
 │
-├── public/                     # フロントエンドの公開ファイル (ウェブサーバーのルートに対応)
-│   ├── index.html              # メインのHTMLファイル
-│   ├── css/                    # CSSファイル用
-│   │   └── style.css           # (オプション) カスタムスタイルシート
-│   ├── js/                     # JavaScriptファイル用
-│   │   └── app.js              # (オプション) HTMLから分離する場合のメインJSファイル
-│   └── images/                 # ★画像ファイル用 (商品画像、ロゴなど)
-│       ├── product1.png        # (例) 商品Aの画像
-│       └── placeholder.png     # (例) プレースホルダー画像
+├── public/                     # Frontend public files (corresponds to web server root)
+│   ├── index.html              # Main HTML file
+│   └── images/                 # ★ For image files (product images, logos, etc.)
+│       ├── product1.png        # (Example) Image for Product A
+│       └── placeholder.png     # (Example) Placeholder image
 │
-├── scripts/                    # (オプション) デプロイやテスト用スクリプト
-│   ├── deploy.js               # (例) Hardhat/Truffle用デプロイスクリプト
-│   └── test.js                 # (例) テストスクリプト
+├── scripts/                    # (Optional) Deployment and testing scripts
+│   └── deploy.js               # (Example) Deployment script for Hardhat
 │
-├── hardhat.config.js           # (オプション) Hardhatを使用する場合の設定ファイル
-├── package.json                # (オプション) Node.jsプロジェクトの場合のパッケージ管理ファイル
-└── README.md                   # プロジェクトの説明ファイル
+├── hardhat.config.js           # (Optional) Configuration file if using Hardhat
+├── package.json                # (Optional) Package management file for Node.js project
+└── README.md                   # Project description file
 ```

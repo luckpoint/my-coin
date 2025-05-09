@@ -1,6 +1,8 @@
 # My Coin DApp - Smart Contracts
 
-This project contains the Hardhat environment and Solidity smart contracts for a simple Decentralized Application (DApp) called "TokenShop". The DApp allows users to acquire a custom ERC-20 token (`MyToken`) and use it to "purchase" virtual products from a `Shop` contract. This project is designed for learning purposes, demonstrating basic tokenomics and smart contract interactions.
+This project contains the Hardhat environment and Solidity smart contracts for a simple Decentralized Application (DApp) called "My Coin Shop".
+The DApp allows users to acquire a custom ERC-20 token (`MyToken`) and use it to "purchase" virtual products from a `Shop` contract. 
+This project is designed for learning purposes, demonstrating basic tokenomics and smart contract interactions.
 
 This repository focuses on the **smart contract backend** and deployment scripts. A separate frontend application (e.g., using ethers.js and Bootstrap as described in `Spec.md`) would be required to interact with these contracts through a user interface.
 
@@ -8,6 +10,7 @@ This repository focuses on the **smart contract backend** and deployment scripts
 
 - [My Coin DApp - Smart Contracts](#my-coin-dapp---smart-contracts)
   - [Table of Contents](#table-of-contents)
+  - [Use case](#use-case)
   - [Overview](#overview)
   - [Contracts](#contracts)
     - [`MyToken.sol`](#mytokensol)
@@ -26,6 +29,12 @@ This repository focuses on the **smart contract backend** and deployment scripts
     - [3. Shop Operations](#3-shop-operations)
   - [Scripts](#scripts)
 
+## Use case
+
+Administrator (parent) gives coins to the child (e.g., when they studied or helped out).
+Coins are credited to the child's wallet.
+The child purchases desired items.
+
 ## Overview
 
 The TokenShop DApp consists of two main smart contracts:
@@ -34,6 +43,7 @@ The TokenShop DApp consists of two main smart contracts:
 *   **`Shop.sol`**: A contract that lists products and allows users to purchase them using `MyToken`.
 
 The primary learning objectives are to understand ERC-20 token mechanics, contract ownership, token approval/transfer flows, and basic DApp interactions.
+
 
 ## Contracts
 
@@ -86,7 +96,7 @@ The primary learning objectives are to understand ERC-20 token mechanics, contra
 
 ## Prerequisites
 
-*   Node.js (v18.x or later recommended)
+*   Node.js (v20.x or later recommended)
 *   npm or yarn
 *   MetaMask browser extension (for interacting with a deployed DApp on a testnet/mainnet or a local GUI like Ganache)
 
@@ -94,17 +104,13 @@ The primary learning objectives are to understand ERC-20 token mechanics, contra
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
-    cd hardhat-project
+    git clone https://github.com/luckpoint/my-coin.git 
+    cd my-coin
     ```
 
 2.  **Install dependencies:**
     ```bash
     npm install
-    ```
-    or
-    ```bash
-    yarn install
     ```
 
 ## Environment Variables
@@ -124,7 +130,6 @@ Then, edit `.env` with your specific values:
 SEPOLIA_RPC_URL="YOUR_SEPOLIA_RPC_URL"
 
 # Private key of the account you want to use for deployment on Sepolia
-# IMPORTANT: Do not commit this file with a real private key for a mainnet account holding actual value.
 SEPOLIA_PRIVATE_KEY="YOUR_SEPOLIA_WALLET_PRIVATE_KEY"
 ```
 
@@ -147,10 +152,6 @@ The `scripts/deploy.js` script handles the deployment of both `MyToken` and `Sho
     In another terminal (or the same one if you didn't start `hardhat node`):
     ```bash
     npx hardhat run scripts/deploy.js --network localhost
-    ```
-    If you are not running a separate `npx hardhat node`, you can deploy directly to the default in-memory Hardhat Network:
-    ```bash
-    npx hardhat run scripts/deploy.js --network hardhat
     ```
     The script will output the addresses of the deployed `MyToken` and `Shop` contracts.
 
