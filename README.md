@@ -4,7 +4,7 @@ This project contains the Hardhat environment and Solidity smart contracts for a
 The DApp allows users to acquire a custom ERC-20 token (`MyToken`) and use it to "purchase" virtual products from a `Shop` contract. 
 This project is designed for learning purposes, demonstrating basic tokenomics and smart contract interactions.
 
-This repository focuses on the **smart contract backend** and deployment scripts. A separate frontend application (e.g., using ethers.js and Bootstrap as described in `Spec.md`) would be required to interact with these contracts through a user interface.
+This repository focuses on the **smart contract backend** and deployment scripts. A separate frontend application would be required to interact with these contracts through a user interface.
 
 ## Table of Contents
 
