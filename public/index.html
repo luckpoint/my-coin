@@ -392,6 +392,20 @@
                     await renderProductsForChild();
                 }
             }
+
+            if (shopContract) {
+                // Remove any existing listener first to prevent duplicates
+                shopContract.removeAllListeners("ProductPriceUpdated");
+
+                // Add listener for product price updates
+                shopContract.on("ProductPriceUpdated", (productId, newPrice, eventContext) => {
+                    console.log(`Event: Product ID ${productId} price updated to ${ethers.formatUnits(newPrice, tokenDecimals)}.`);
+                    showNotification(`Price updated for a product! Refreshing list...`, "info");
+                    if (currentMode === 'child') {
+                        renderProductsForChild(); // Refresh product list for child
+                    }
+                });
+            }
         }
 
         function resetApp() {
@@ -407,6 +421,9 @@
 
             if (myTokenContract) { // If contract instance existed, remove listeners
                 myTokenContract.removeAllListeners("TokensPendingForChild");
+            }
+            if (shopContract) { // If shop contract instance existed, remove listeners
+                shopContract.removeAllListeners("ProductPriceUpdated");
             }
             
             provider = null; signer = null; myTokenContract = null; shopContract = null;
@@ -430,9 +447,6 @@
                 signer = await provider.getSigner();
                 userAddress = signer.address.toLowerCase();
 
-                if (MY_TOKEN_ADDRESS === "YOUR_MYTOKEN_CONTRACT_ADDRESS" || SHOP_CONTRACT_ADDRESS === "YOUR_SHOP_CONTRACT_ADDRESS") {
-                    showNotification("Contract addresses are not set.", "danger"); resetApp(); return;
-                }
                 myTokenContract = new ethers.Contract(MY_TOKEN_ADDRESS, MY_TOKEN_ABI, signer);
                 shopContract = new ethers.Contract(SHOP_CONTRACT_ADDRESS, SHOP_ABI, signer);
                 
@@ -652,9 +666,6 @@
             // If shopContract is not initialized but provider is, create a read-only instance
             if (!displayContract && provider) {
                 try {
-                    if (SHOP_CONTRACT_ADDRESS === "YOUR_SHOP_CONTRACT_ADDRESS") { 
-                        productListChildDiv.innerHTML = '<p class="text-danger">Shop contract address not set.</p>'; return;
-                    }
                     displayContract = new ethers.Contract(SHOP_CONTRACT_ADDRESS, SHOP_ABI, provider);
                 } catch (e) { 
                     productListChildDiv.innerHTML = '<p class="text-danger">Failed to load Shop contract.</p>'; return;
@@ -737,14 +748,25 @@
 
             const purchaseButton = event.target;
             purchaseButton.disabled = true;
-            purchaseButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+            purchaseButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
 
             try {
+                // 1. Check balance before attempting transaction
+                const balanceWei = await myTokenContract.balanceOf(userAddress);
+                if (balanceWei < priceWei) {
+                    showNotification("Insufficient funds to purchase this item.", "warning");
+                    purchaseButton.disabled = false;
+                    purchaseButton.innerHTML = 'Purchase';
+                    return;
+                }
+
+                purchaseButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Approving...';
                 showNotification(`Approving token usage for Shop contract...`, "info", false);
                 const approveTx = await myTokenContract.approve(SHOP_CONTRACT_ADDRESS, priceWei);
                 await approveTx.wait();
                 showNotification("Token usage approval (Approve) complete.", "success", true); // Auto dismiss success
 
+                purchaseButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Purchasing...';
                 showNotification(`Processing purchase for Product ID ${productId}...`, "info", false);
                 const purchaseTx = await shopContract.purchaseProduct(productId);
                 await purchaseTx.wait();
@@ -755,10 +777,19 @@
 
                 // Update button to "Purchased" and keep it disabled
                 purchaseButton.innerHTML = 'Purchased';
-                purchaseButton.disabled = true;
+                purchaseButton.disabled = true; // Already disabled, but good to be explicit
             } catch (error) {
                 console.error("Child mode purchase error:", error);
-                showNotificationError(error, "Purchase processing error");
+                // Try to get a more specific reason
+                let friendlyMessage = "Purchase processing error.";
+                if (error.reason) {
+                    friendlyMessage = `Purchase failed: ${error.reason}`;
+                } else if (error.data && error.data.message) {
+                    friendlyMessage = `Purchase failed: ${error.data.message}`;
+                } else if (error.message && error.message.includes("insufficient funds")) {
+                    friendlyMessage = "Purchase failed: Insufficient funds for the transaction.";
+                }
+                showNotificationError(error, friendlyMessage); // Show the detailed error for devs but a friendlier one too
             } finally {
                 // Ensure button state is managed correctly, if not purchased, re-enable
                 if (purchaseButton.innerHTML !== 'Purchased') {

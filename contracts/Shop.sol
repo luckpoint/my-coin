@@ -79,11 +79,7 @@ contract Shop is Ownable {
         console.log("currentAllowance", currentAllowance, "price", product.price); // For debugging
         require(currentAllowance >= product.price, "Shop: Insufficient token allowance. User must approve tokens for the Shop before purchasing.");
 
-        // State changes before external call (re-entrancy guard example)
-        // if (product.isSinglePurchase) { product.isActive = false; }
-
         token.transferFrom(msg.sender, address(this), product.price);
-
         emit ProductPurchased(msg.sender, _productId, product.price);
     }
 
